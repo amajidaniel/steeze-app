@@ -1,0 +1,79 @@
+import { getQuestionsByTagId, getTagById } from "@/actions/tag";
+import Page from "@/app/(auth)/sign-in/[[...sign-in]]/page";
+import QuestionCard from "@/components/card/question-card";
+import Empty from "@/components/empty";
+import Pagination from "@/components/pagination";
+import Search from "@/components/search";
+import { IQuestion } from "@/db/question.model";
+import { ParamsProps, URLProps } from "@/types";
+import { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: ParamsProps): Promise<Metadata> {
+  const tag = await getTagById(params.id);
+
+  return {
+    title: tag.name,
+    description: `All questions related to ${tag.name}`,
+  };
+}
+
+const QuestionByTagPage = async ({ params, searchParams }: URLProps) => {
+  const { questions, tagTitle, isNext, totalPages } = await getQuestionsByTagId(
+    {
+      tagId: params.id,
+      searchQuery: searchParams.q,
+      page: searchParams.page ? +searchParams.page : 1,
+    },
+  );
+
+  return (
+    <>
+      <h1 className="h1-bold text-dark100_light900">{tagTitle}</h1>
+
+      <div className="mt-11 w-full">
+        <Search
+          route={`/tags/${params.id}`}
+          iconPosition="left"
+          imgSrc="/assets/icons/search.svg"
+          placeholder="Search tag questions"
+          otherClasses="flex-1"
+        />
+      </div>
+
+      <div className="mt-10 flex w-full flex-col gap-6">
+        {questions.length > 0 ? (
+          questions.map((question: IQuestion) => (
+            <QuestionCard
+              key={question._id}
+              _id={question._id}
+              title={question.title}
+              // TODO:FIX THIS ANY TO THESES THREE LINE
+              tags={question.tags as any}
+              author={question.author as any}
+              upvotes={question.upvotes as any}
+              views={question.views}
+              answers={question.answers}
+              createdAt={question.createdAt}
+            />
+          ))
+        ) : (
+          <Empty
+            title="There’s no tag question saved to show"
+            description="Be the first to break the silence! 🚀 Ask a Question and kickstart the discussion. our query could be the next big thing others learn from. Get involved! 💡"
+            link="/ask-question"
+            linkTitle="Ask a Question"
+          />
+        )}
+      </div>
+      <Pagination
+        totalPages={totalPages}
+        isNext={isNext}
+        pageNumber={searchParams.page ? +searchParams.page : 1}
+      />
+    </>
+  );
+};
+
+export default QuestionByTagPage;
